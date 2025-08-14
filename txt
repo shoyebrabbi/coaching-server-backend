@@ -1,0 +1,142 @@
+111111111111111111111111111
+
+
+// server.js
+
+// প্রয়োজনীয় লাইব্রেরিগুলো ইম্পোর্ট করা হচ্ছে
+const express = require('express');
+const mongoose = require('mongoose'); // ডেটাবেসের সাথে সংযোগের জন্য Mongoose
+
+// Express অ্যাপ চালু করা হচ্ছে
+const app = express();
+
+// সার্ভার পোর্ট নির্ধারণ
+const PORT = process.env.PORT || 5000;
+
+// --- ডেটাবেস সংযোগ ---
+// আপনার MongoDB কানেকশন স্ট্রিং এখানে যোগ করতে হবে।
+// আপাতত এটি একটি উদাহরণ হিসেবে দেওয়া হলো।
+const MONGO_URI = 'mongodb+srv://shoyeb:shoyeb687@cluster0.vdfodbp.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0';
+
+mongoose.connect(MONGO_URI)
+  .then(() => console.log('MongoDB ডেটাবেসের সাথে সফলভাবে সংযোগ স্থাপিত হয়েছে।'))
+  .catch(err => console.error('ডেটাবেস সংযোগে সমস্যা হয়েছে:', err));
+// --------------------
+
+// একটি বেসিক রুট (Route)
+app.get('/', (req, res) => {
+  res.send('আমাদের কোচিং সেন্টারের সার্ভার চালু হয়েছে এবং ডেটাবেসের সাথে যুক্ত!');
+});
+
+// সার্ভার চালু করা হচ্ছে
+app.listen(PORT, () => {
+  console.log(`সার্ভারটি http://localhost:${PORT} -এ চলছে`);
+});
+
+
+222222222222222222222222222222
+
+
+import React, { useState, useEffect } from 'react';
+// Course Components
+import CourseForm from './components/CourseForm';
+import EditCourseForm from './components/EditCourseForm';
+// Student Components
+import StudentForm from './components/StudentForm';
+import StudentList from './components/StudentList';
+
+function App() {
+  // States for Courses
+  const [courses, setCourses] = useState([]);
+  const [editingCourse, setEditingCourse] = useState(null);
+  
+  // States for Students
+  const [students, setStudents] = useState([]);
+
+  // --- Data Fetching ---
+  useEffect(() => {
+    // Fetch courses
+    fetch('http://localhost:5000/api/courses')
+      .then(res => res.json())
+      .then(data => setCourses(data))
+      .catch(error => console.error('Error fetching courses:', error));
+
+    // Fetch students
+    fetch('http://localhost:5000/api/students')
+      .then(res => res.json())
+      .then(data => setStudents(data))
+      .catch(error => console.error('Error fetching students:', error));
+  }, []);
+
+  // --- Course Handlers ---
+  const handleCourseAdded = (newCourse) => setCourses([...courses, newCourse]);
+  const handleUpdateCourse = (updatedCourse) => {
+    setCourses(courses.map(c => (c._id === updatedCourse._id ? updatedCourse : c)));
+    setEditingCourse(null);
+  };
+  const handleDeleteCourse = (id) => {
+    if (window.confirm('এই কোর্সটি ডিলিট করতে চান?')) {
+      fetch(`http://localhost:5000/api/courses/${id}`, { method: 'DELETE' })
+        .then(res => res.ok && setCourses(courses.filter(c => c._id !== id)));
+    }
+  };
+
+  // --- Student Handlers ---
+  const handleStudentAdded = (newStudent) => setStudents([...students, newStudent]);
+  const handleDeleteStudent = (id) => {
+    if (window.confirm('এই শিক্ষার্থীকে ডিলিট করতে চান?')) {
+      fetch(`http://localhost:5000/api/students/${id}`, { method: 'DELETE' })
+        .then(res => res.ok && setStudents(students.filter(s => s._id !== id)));
+    }
+  };
+
+  return (
+    <div className="bg-gray-100 min-h-screen font-sans">
+      <div className="container mx-auto p-4 md:p-8">
+        <header className="text-center mb-10">
+          <h1 className="text-4xl md:text-5xl font-extrabold text-gray-800">আমাদের কোচিং ম্যানেজমেন্ট</h1>
+        </header>
+
+        <main className="grid grid-cols-1 lg:grid-cols-2 gap-12">
+          {/* Left Column for Courses */}
+          <div>
+            <CourseForm onCourseAdded={handleCourseAdded} />
+            <div className="mt-12">
+              <h2 className="text-3xl font-bold mb-6 text-gray-800">কোর্সসমূহ</h2>
+              <div className="space-y-4">
+                {courses.map(course => (
+                  <div key={course._id} className="bg-white rounded-lg shadow-lg p-4">
+                    {editingCourse && editingCourse._id === course._id ? (
+                      <EditCourseForm course={editingCourse} onUpdate={handleUpdateCourse} onCancel={() => setEditingCourse(null)} />
+                    ) : (
+                      <div className="space-y-2">
+                        <h3 className="text-xl font-bold">{course.name}</h3>
+                        <p className="text-gray-600">{course.description}</p>
+                        <div className="flex justify-between text-sm">
+                          <span>ফি: {course.fee}</span>
+                          <span>সময়কাল: {course.duration}</span>
+                        </div>
+                        <div className="flex space-x-2 pt-2">
+                          <button onClick={() => setEditingCourse(course)} className="flex-1 text-sm bg-yellow-500 text-white py-1 px-2 rounded hover:bg-yellow-600">এডিট</button>
+                          <button onClick={() => handleDeleteCourse(course._id)} className="flex-1 text-sm bg-red-600 text-white py-1 px-2 rounded hover:bg-red-700">ডিলিট</button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Right Column for Students */}
+          <div>
+            <StudentForm onStudentAdded={handleStudentAdded} />
+            <StudentList students={students} onDelete={handleDeleteStudent} />
+          </div>
+        </main>
+      </div>
+    </div>
+  );
+}
+
+export default App;
